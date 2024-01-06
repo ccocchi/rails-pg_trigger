@@ -3,7 +3,10 @@ require_relative "plan"
 module PgTrigger
   class Generator
     def run
-      generate_migration(build_plan)
+      plan = build_plan
+      raise "TODO: empty plan" if plan.empty?
+
+      generate_migration(plan)
     end
 
     private
@@ -36,7 +39,7 @@ module PgTrigger
     def generate_migration(plan)
       number = ActiveRecord::Generators::Migration.next_migration_number("db/migrate")
       name = infer_name_from(plan)
-      source = generate_source(plan)
+      source = generate_source(plan, name)
 
       filename = "#{number}_#{name}.rb"
       File.binwrite(filename, source)
@@ -59,22 +62,60 @@ module PgTrigger
       "#{action}_triggers_on_#{table}"
     end
 
-    def generate_source(plan)
-    #       File.open(filename, "w") { |f| f.write <<-RUBY }
-# # This migration was auto-generated via `rake db:triggers:migration'.
-
-# class #{migration_name} < ActiveRecord::Migration[#{ActiveRecord::Migration.current_version}]
-#   def up
-#     #{(up_drop_triggers + up_create_triggers).map{ |t| t.to_ruby('    ') }.join("\n\n").lstrip}
-#   end
-
-#   def down
-#     #{(down_drop_triggers + down_create_triggers).map{ |t| t.to_ruby('    ') }.join("\n\n").lstrip}
-#   end
-# end
-#       RUBY
-#       filename
+    def generate_source(plan, name)
+      [
+        header(name),
+        up(plan),
+        down(plan),
+        footer
+      ].join("\n")
     end
+
+    def header(filename)
+      <<-STR.rstrip
+# This migration was auto-generated via `rake db:triggers:migration'.
+
+class #{migration_name.camelize} < ActiveRecord::Migration[#{ActiveRecord::Migration.current_version}]
+      STR
+    end
+
+    def up(plan)
+      triggers = plan.triggers_to_create.map do |trigger|
+        <<-STR
+    execute <<-SQL
+      #{trigger.create_function_sql};
+      #{trigger.create_trigger_sql};
+    SQL
+        STR
+      end
+
+      return if triggers.empty?
+      <<-STR
+  def up
+    #{triggers.join("\n\n")}
+  end
+      STR
+    end
+
+    def down
+      triggers = plan.triggers_to_drop.map do |trigger|
+        <<-STR
+    execute <<-SQL
+      #{trigger.drop_function_sql};
+      #{trigger.drop_trigger_sql};
+    SQL
+        STR
+      end
+
+      return if triggers.empty?
+      <<-STR
+  def down
+    #{triggers.join("\n\n")}
+  end
+      STR
+    end
+
+    def footer = "end"
 
     def existing_triggers
       content = File.binread("db/structure.sql")

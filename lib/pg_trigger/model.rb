@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module PgTrigger::Model
   module ClassMethods
     def _triggers = @_triggers
@@ -29,11 +31,13 @@ module PgTrigger::Model
     attr_reader :table, :timing, :content, :columns, :events
 
     def initialize
+      @name     = nil
       @table    = nil
       @timing   = nil
       @events   = []
       @columns  = []
       @content  = nil
+      @where    = nil
     end
 
     def on(table_name)
@@ -54,20 +58,62 @@ module PgTrigger::Model
       @columns.concat(columns)
     end
 
-    chain :on, :of, :after, :before
+    def where(condition)
+      @where = condition
+    end
+
+    def named(name)
+      @name = name
+    end
+
+    chain :on, :of, :after, :before, :named, :where
+
+    def name
+      @name ||= inferred_name
+    end
+
+    def create_function_sql
+      <<~SQL
+        CREATE OR REPLACE FUNCTION #{name}() RETURNS TRIGGER
+        AS $$
+          BEGIN
+            #{@content}
+          END
+        $$ LANGUAGE plpgsql;
+      SQL
+    end
+
+    def create_trigger_sql
+      whr = @where.nil? ? "" : "WHEN (#@where)"
+
+      <<~SQL
+        CREATE TRIGGER #{name}
+        #{@timing.upcase} #{events.map(&:upcase).join(" OR ")} ON #{adapter.quote_table_name(@table)}
+        FOR EACH ROW
+        #{whr}
+        EXECUTE FUNCTION #{name}();
+      SQL
+    end
+
+    def drop_function_sql
+      "DROP FUNCTION IF EXISTS #{name}"
+    end
+
+    def drop_trigger_sql
+      "DROP TRIGGER IF EXISTS #{name} ON #{adapter.quote_table_name(@table)}"
+    end
 
     private
 
-    # def adapter
-    #   @adapter ||= ActiveRecord::Base.connection
-    # end
+    def adapter
+      @adapter ||= ActiveRecord::Base.connection
+    end
 
     def inferred_name
       [@table,
        @timing,
-       @event,
-       "row"
-      ].join("_").downcase.gsub(/[^a-z0-9_]/, '_').gsub(/_+/, '_')[0, 60] + "_tr"
+       @event.join("_or_"),
+      ].join("_").downcase.slice(0, 60).append("_tr")
     end
   end
 end
