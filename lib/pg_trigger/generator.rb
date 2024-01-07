@@ -1,4 +1,5 @@
 require_relative "plan"
+require_relative "indented_string"
 
 module PgTrigger
   class Generator
@@ -81,12 +82,16 @@ class #{migration_name.camelize} < ActiveRecord::Migration[#{ActiveRecord::Migra
 
     def up(plan)
       triggers = plan.triggers_to_create.map do |trigger|
-        <<-STR
-    execute <<-SQL
-      #{trigger.create_function_sql};
-      #{trigger.create_trigger_sql};
-    SQL
-        STR
+        str = IndentedString.new("execute <<-SQL", size: 4)
+        str.indent
+        if trigger.create_function?
+          str << trigger.create_function_sql
+          str.endline
+        end
+        str << trigger.create_trigger_sql
+        str.outdent
+        str << "SQL\n"
+        str.to_s
       end
 
       return if triggers.empty?

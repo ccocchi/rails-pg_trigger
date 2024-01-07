@@ -74,7 +74,7 @@ class TestTriggerClass < Minitest::Test
 
   def test_drop_function_sql
     trigger.named("foo_tr")
-    assert_equal "DROP FUNCTION IF EXISTS foo_tr", trigger.drop_function_sql
+    assert_equal "DROP FUNCTION IF EXISTS foo_tr;", trigger.drop_function_sql
   end
 
   def test_create_trigger_sql

@@ -1,48 +1,49 @@
 module PgTrigger
   class Plan
-    attr_reader :action, :table
+    attr_reader :type, :table
 
     def initialize
-      @action = nil
-      @table  = nil
-      @inner  = Hash.new { |h, k| h[k] = [] }.tap(&:compare_by_identity)
+      @type = nil
+      @table = nil
+      @actions = Hash.new { |h, k| h[k] = [] }.tap(&:compare_by_identity)
     end
 
-    def empty? = @inner.empty?
+    def empty? = @actions.empty?
 
     def add_trigger(t)
-      set_action :create
+      set_type :create
       set_table t.table
 
-      @inner[:added] << t
+      @actions[:to_add] << t
     end
 
     def drop_trigger_by_name(name)
-      set_action :drop
+      set_type :drop
 
-      @inner[:removed] << name
+      @actions[:to_remove] << name
     end
 
     def update_trigger(t)
-      set_action :update
+      set_type :update
       set_table t.table
 
-      @inner[:updated] << t
+      @actions[:to_remove] << t.name
+      @actions[:to_add] << t
     end
 
     private
 
-    def set_action(type)
-      if @action
-        @action = :multi
+    def set_type(type)
+      if @type
+        @type = :multi if @type != type
       else
-        @action = :type
+        @type = type
       end
     end
 
     def set_table(name)
       if @table
-        @table = "multiple"
+        @table = "multiple" if @table != name
       else
         @table = name
       end

@@ -25,6 +25,7 @@ class PgTrigger::Trigger
     @columns  = []
     @content  = nil
     @where    = nil
+    @options  = {}
   end
 
   def on(table_name)
@@ -53,10 +54,18 @@ class PgTrigger::Trigger
     @name = name
   end
 
-  chain :on, :of, :after, :before, :named, :where
+  def nowrap
+    @options[:nowrap] = true
+  end
+
+  chain :on, :of, :after, :before, :named, :where, :nowrap
 
   def name
     @name ||= inferred_name
+  end
+
+  def create_function?
+    !@options[:nowrap]
   end
 
   def create_function_sql
@@ -82,11 +91,11 @@ class PgTrigger::Trigger
   end
 
   def drop_function_sql
-    "DROP FUNCTION IF EXISTS #{name}"
+    "DROP FUNCTION IF EXISTS #{name};"
   end
 
   def drop_trigger_sql
-    "DROP TRIGGER IF EXISTS #{name} ON #{adapter.quote_table_name(@table)}"
+    "DROP TRIGGER IF EXISTS #{name} ON #{adapter.quote_table_name(@table)};"
   end
 
   private
