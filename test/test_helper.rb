@@ -10,3 +10,5 @@ require "minitest/autorun"
 
 config = YAML.safe_load(File.read(File.join(File.expand_path(__dir__), "database.yml")))
 ActiveRecord::Base.establish_connection(config)
+
+PgTrigger.structure_file_path = File.join(File.expand_path(__dir__), "fixtures", "structure.sql")

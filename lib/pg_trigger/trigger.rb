@@ -73,7 +73,8 @@ class PgTrigger::Trigger
       CREATE OR REPLACE FUNCTION #{name}() RETURNS TRIGGER
       AS $$
         BEGIN
-          #{@content}
+          #{@content};
+          RETURN NULL;
         END
       $$ LANGUAGE plpgsql;
     SQL

@@ -69,7 +69,7 @@ class TestTriggerClass < Minitest::Test
     sql = trigger.create_function_sql
 
     assert_match %r{CREATE OR REPLACE FUNCTION foo_tr\(\) RETURNS TRIGGER}, sql
-    assert_match %r{BEGIN\s+#{Regexp.escape(content)}\s+END}, sql
+    assert_match %r{BEGIN\s+#{Regexp.escape(content)};\s+RETURN NULL;\s+END}, sql
   end
 
   def test_drop_function_sql

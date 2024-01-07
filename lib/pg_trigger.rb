@@ -3,10 +3,15 @@
 require_relative "pg_trigger/version"
 require_relative "pg_trigger/model"
 require_relative "pg_trigger/trigger"
-require_relative "pg_trigger/plan"
-require_relative "pg_trigger/indented_string"
+require_relative "pg_trigger/generator"
 
 module PgTrigger
   class GenerationError < StandardError; end
-  # Your code goes here...
+
+  class << self
+    attr_accessor :structure_file_path, :schema
+  end
+
+  self.structure_file_path = "db/structure.sql"
+  self.schema = "public"
 end

@@ -10,6 +10,20 @@ module PgTrigger
 
     def empty? = @actions.empty?
 
+    def name
+      action = case type
+      when :create then "create"
+      when :drop then "drop"
+      when :update then "update"
+      else
+        "change"
+      end
+
+      table_name = table == :multi ? "multiple_tables" : table
+
+      "#{action}_triggers_on_#{table}"
+    end
+
     def add_trigger(t)
       set_type :create
       set_table t.table
@@ -19,6 +33,9 @@ module PgTrigger
 
     def drop_trigger_by_name(name)
       set_type :drop
+      if (data = name.match(/\A(\w+)_(before|after)_/))
+        set_table data[1]
+      end
 
       @actions[:to_remove] << name
     end
