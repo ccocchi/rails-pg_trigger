@@ -1,5 +1,37 @@
 module PgTrigger
+  # This class represents the actions needed to go from the existing triggers to
+  # the expected triggers defined in the models.
+  #
   class Plan
+    class Builder
+      def initialize(expected, existing)
+        @expected = expected
+        @existing = existing
+      end
+
+      def result
+        plan = Plan.new
+
+        # Find new or updated triggers
+        @expected.each do |t|
+          existing_content = @existing[t.name]
+          if existing_content
+            plan.update_trigger(t) if t.content != existing_content
+          else
+            plan.add_trigger(t)
+          end
+        end
+
+        # Find removed triggers
+        @existing.each_key do |name|
+          next if @expected.any? { |t| t.name == name }
+          plan.drop_trigger_by_name(name)
+        end
+
+        plan
+      end
+    end
+
     attr_reader :type, :table
 
     def initialize
@@ -7,6 +39,10 @@ module PgTrigger
       @table = nil
       @actions = Hash.new { |h, k| h[k] = [] }.tap(&:compare_by_identity)
     end
+
+    def new_triggers = @actions[:to_add]
+
+    def removed_triggers = @actions[:to_remove]
 
     def empty? = @actions.empty?
 

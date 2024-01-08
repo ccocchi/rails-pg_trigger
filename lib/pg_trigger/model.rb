@@ -1,13 +1,18 @@
 # frozen_string_literal: true
 
 module PgTrigger::Model
+  def self.included(other)
+    other.extend ClassMethods
+  end
+
   module ClassMethods
-    def _triggers = @_triggers
+    attr_reader :_triggers
 
     def trigger
-      tr = Trigger.new
+      tr = PgTrigger::Trigger.new
       tr.on(table_name)
 
+      @_triggers ||= []
       @_triggers << tr
       tr
     end

@@ -3,17 +3,15 @@
 require "test_helper"
 
 class TestGenerator < Minitest::Test
-  class User < ActiveRecord::Base; end
-
   def test_models
-    assert_equal [User], PgTrigger::Generator.send(:models)
+    assert_equal 2, PgTrigger::Generator.send(:models).size
   end
 
   def test_existing_triggers
     triggers = PgTrigger::Generator.send(:existing_triggers)
 
     assert triggers.is_a?(Array)
-    assert_equal 1, triggers.size
+    assert_equal 2, triggers.size
 
     t = triggers.first
 

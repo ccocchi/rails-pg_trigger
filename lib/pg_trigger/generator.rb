@@ -5,6 +5,9 @@ module PgTrigger
   module Generator
     class << self
       def run
+
+        triggers = models.filter_map { |m| m._triggers.presence }.flatten
+        existing = existing_triggers.to_h
         plan = build_plan
         raise "TODO: empty plan" if plan.empty?
 
@@ -12,31 +15,6 @@ module PgTrigger
       end
 
       private
-
-      def build_plan
-        triggers = models.filter_map { |m| m._triggers.presence }.flatten
-        existing = existing_triggers.to_h
-
-        plan = Plan.new
-
-        # Find new or updated triggers
-        triggers.each do |t|
-          existing_content = existing[t.name]
-          if existing_content
-            plan.update_trigger(t) if t.content != content
-          else
-            plan.add_trigger(t)
-          end
-        end
-
-        # Find removed triggers
-        existing.each_key do |name|
-          next if triggers.any? { |t| t.name == name }
-          plan.drop_trigger_by_name(name)
-        end
-
-        plan
-      end
 
       def generate_migration(plan)
         number = ActiveRecord::Generators::Migration.next_migration_number("db/migrate")
@@ -49,6 +27,7 @@ module PgTrigger
         filename
       end
 
+
       def generate_source(plan, name)
         [
           header(name),
@@ -58,6 +37,7 @@ module PgTrigger
         ].join("\n")
       end
 
+      # TODO: maybe extract this into its own file
       def existing_triggers
         content = File.binread(PgTrigger.structure_file_path)
         scanner = StringScanner.new(content)

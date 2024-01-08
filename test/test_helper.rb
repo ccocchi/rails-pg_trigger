@@ -8,7 +8,15 @@ require "pg_trigger"
 
 require "minitest/autorun"
 
-config = YAML.safe_load(File.read(File.join(File.expand_path(__dir__), "database.yml")))
+dir = File.expand_path(__dir__)
+
+config = YAML.safe_load(File.read(File.join(dir, "database.yml")))
 ActiveRecord::Base.establish_connection(config)
 
-PgTrigger.structure_file_path = File.join(File.expand_path(__dir__), "fixtures", "structure.sql")
+PgTrigger.structure_file_path = File.join(dir, "fixtures", "structure.sql")
+
+ActiveRecord::Base.include(PgTrigger::Model)
+
+Dir.glob(File.join(dir, "models/*.rb")) { |file| require file }
+
+PgTrigger::Plan.attr_reader :actions

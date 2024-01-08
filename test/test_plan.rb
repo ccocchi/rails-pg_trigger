@@ -21,6 +21,7 @@ class TestPlan < Minitest::Test
     assert_equal "users", plan.table
     refute plan.empty?
     assert_plan_has_actions :to_add
+    assert_equal [trigger], plan.new_triggers
   end
 
   def test_adding_triggers_on_same_table
@@ -92,6 +93,6 @@ class TestPlan < Minitest::Test
   end
 
   def assert_plan_has_actions(type)
-    assert @plan.instance_variable_get(:@actions).key?(type)
+    assert @plan.actions.key?(type)
   end
 end
