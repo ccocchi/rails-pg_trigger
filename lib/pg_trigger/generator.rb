@@ -13,85 +13,73 @@ module PgTrigger
         plan = Plan::Builder.new(triggers, existing).result
         return if plan.empty?
 
-        generate_migration(plan)
+        migration = Migration.new(plan)
+        migration.save_to_file
+        migration.name
+      end
+    end
+
+    class Migration
+      attr_reader :name
+
+      def initialize(plan)
+        @plan = plan
+        @output = nil
+
+        number = ActiveRecord::Generators::Migration.next_migration_number(PgTrigger.migrations_path)
+        @name = "#{number}_#{plan.name}.rb"
       end
 
-      private
+      def save_to_file
+        generate_output if @output.nil?
 
-      def generate_migration(plan)
-        number = ActiveRecord::Generators::Migration.next_migration_number(PgTrigger.migrations_path)
-        source = generate_source(plan)
-
-        filename = "#{number}_#{plan.name}.rb"
-        File.binwrite(filename, source)
+        filename = name
+        File.binwrite(File.join(PgTrigger.migrations_path, filename), @output)
 
         filename
       end
 
-      def generate_source(plan, name)
-        [
-          header(name),
-          up(plan),
-          down(plan),
-          footer
-        ].join("\n")
+      def generate_output
+        @output = ""
+        header
+        up_and_down
+        footer
       end
 
-      # def models
-      #   Rails.application.eager_load! if defined?(Rails)
-      #   ActiveRecord::Base.descendants
-      # end
+      private
+
+      def header
+        migration_name = plan.name.camelize
+
+        @output << "# This migration was auto-generated via `rake db:triggers:migration'.\n\n"
+        @output << "class #{migration_name} < ActiveRecord::Migration[#{ActiveRecord::Migration.current_version}]\n"
+      end
+
+      def up_and_down
+        up = IndentedString.new("def up\n", size: 2).indent.append_newline("execute <<-SQL")
+        down = IndentedString.new("def down\n", size: 2).indent.append_newline("execute <<-SQL")
+
+        @plan.new_triggers.each do |trigger|
+          if trigger.create_function?
+            up << trigger.create_function_sql
+            down << trigger.drop_function_sql
+          end
+
+          up << trigger.create_trigger_sql
+          down << trigger.drop_trigger_sql
+        end
+
+        up.outdent
+        down.outdent
+        up << "SQL"
+        down << "SQL"
+
+        @output << [up, down].join("\n")
+      end
+
+      def footer
+        @output << "end\n"
+      end
     end
   end
 end
-
-
-#     def header(filename)
-#       <<-STR.rstrip
-# # This migration was auto-generated via `rake db:triggers:migration'.
-
-# class #{migration_name.camelize} < ActiveRecord::Migration[#{ActiveRecord::Migration.current_version}]
-#       STR
-#     end
-
-#     def up(plan)
-#       triggers = plan.triggers_to_create.map do |trigger|
-#         str = IndentedString.new("execute <<-SQL", size: 4)
-#         str.indent
-#         if trigger.create_function?
-#           str << trigger.create_function_sql
-#           str.endline
-#         end
-#         str << trigger.create_trigger_sql
-#         str.outdent
-#         str << "SQL\n"
-#         str.to_s
-#       end
-
-#       return if triggers.empty?
-#       <<-STR
-#   def up
-#     #{triggers.join("\n\n")}
-#   end
-#       STR
-#     end
-
-#     def down
-#       triggers = plan.triggers_to_drop.map do |trigger|
-#         <<-STR
-#     execute <<-SQL
-#       #{trigger.drop_function_sql};
-#       #{trigger.drop_trigger_sql};
-#     SQL
-#         STR
-#       end
-
-#       return if triggers.empty?
-#       <<-STR
-#   def down
-#     #{triggers.join("\n\n")}
-#   end
-#       STR
-#     end
-
-#     def footer = "end"

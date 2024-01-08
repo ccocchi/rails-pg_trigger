@@ -1,7 +1,7 @@
 namespace :db do
   namespace :triggers
     describe "Creates a new database migration representing changes in model-defined triggers"
-    task generate_migration: :environment do
+    task migration: :environment do
       require "pg_trigger/generator"
 
       Rails.application.eager_load!

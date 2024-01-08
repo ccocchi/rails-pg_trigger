@@ -8,26 +8,26 @@ class TestIndentedString < Minitest::Test
     assert_equal "   hello", str.to_s
   end
 
-  def test_append
+  def test_append_newline
     str = PgTrigger::IndentedString.new("hello", size: 2)
     str << "world"
 
-    assert_equal "  hello  world", str.to_s
+    assert_equal "  hello  world\n", str.to_s
   end
 
   def test_indent
-    str = PgTrigger::IndentedString.new("def foo", size: 0)
+    str = PgTrigger::IndentedString.new("def foo\n", size: 0)
     str.indent
     str << "bar"
 
-    assert_equal "def foo\n  bar", str.to_s
+    assert_equal "def foo\n  bar\n", str.to_s
   end
 
   def test_outdent
-    str = PgTrigger::IndentedString.new("bar", size: 2)
+    str = PgTrigger::IndentedString.new("bar\n", size: 2)
     str.outdent
     str << "end"
 
-    assert_equal "  bar\nend", str.to_s
+    assert_equal "  bar\nend\n", str.to_s
   end
 end

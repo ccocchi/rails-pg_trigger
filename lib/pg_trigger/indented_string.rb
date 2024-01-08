@@ -8,20 +8,28 @@ class PgTrigger::IndentedString
 
   def indent
     @spaces << "  "
-    endline
+    self
   end
 
   def outdent
     @spaces.slice!(-2, 2)
-    endline
+    self
   end
 
-  def <<(str)
+  def append(str)
     @inner << @spaces << str
+    self
   end
+
+  def append_newline(str)
+    @inner << @spaces << str
+    endline
+  end
+  alias_method :<<, :append_newline
 
   def endline
     @inner << "\n"
+    self
   end
 
   def to_s = @inner
