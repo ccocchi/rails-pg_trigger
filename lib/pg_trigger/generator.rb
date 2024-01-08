@@ -26,7 +26,7 @@ module PgTrigger
         @plan = plan
         @output = nil
 
-        number = ActiveRecord::Generators::Migration.next_migration_number(PgTrigger.migrations_path)
+        number = ActiveRecord::Migration.next_migration_number(0)
         @name = "#{number}_#{plan.name}.rb"
       end
 
@@ -49,30 +49,28 @@ module PgTrigger
       private
 
       def header
-        migration_name = plan.name.camelize
+        migration_name = @plan.name.camelize
 
         @output << "# This migration was auto-generated via `rake db:triggers:migration'.\n\n"
         @output << "class #{migration_name} < ActiveRecord::Migration[#{ActiveRecord::Migration.current_version}]\n"
       end
 
       def up_and_down
-        up = IndentedString.new("def up\n", size: 2).indent.append_newline("execute <<-SQL")
-        down = IndentedString.new("def down\n", size: 2).indent.append_newline("execute <<-SQL")
+        up = IndentedString.new("def up\n", size: 2).indent.append_newline("execute <<-SQL").indent
+        down = IndentedString.new("def down\n", size: 2).indent.append_newline("execute <<-SQL").indent
 
         @plan.new_triggers.each do |trigger|
           if trigger.create_function?
-            up << trigger.create_function_sql
-            down << trigger.drop_function_sql
+            up.append_raw_string trigger.create_function_sql
+            down.append_raw_string trigger.drop_function_sql
           end
 
-          up << trigger.create_trigger_sql
-          down << trigger.drop_trigger_sql
+          up.append_raw_string trigger.create_trigger_sql
+          down.append_raw_string trigger.drop_trigger_sql
         end
 
-        up.outdent
-        down.outdent
-        up << "SQL"
-        down << "SQL"
+        up.outdent.append_newline("SQL").outdent.append_newline("end")
+        down.outdent.append_newline("SQL").outdent.append_newline("end")
 
         @output << [up, down].join("\n")
       end

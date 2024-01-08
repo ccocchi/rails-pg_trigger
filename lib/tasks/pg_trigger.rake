@@ -2,6 +2,11 @@ namespace :db do
   namespace :triggers
     describe "Creates a new database migration representing changes in model-defined triggers"
     task migration: :environment do
+      if ActiveRecord::Base.connection.migration_context.needs_migration?
+        puts "Abort: some migrations are pending"
+        exit(1)
+      end
+
       require "pg_trigger/generator"
 
       Rails.application.eager_load!

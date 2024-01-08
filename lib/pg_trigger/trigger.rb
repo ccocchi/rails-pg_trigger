@@ -70,13 +70,13 @@ class PgTrigger::Trigger
 
   def create_function_sql
     <<~SQL
-      CREATE OR REPLACE FUNCTION #{name}() RETURNS TRIGGER
-      AS $$
-        BEGIN
-          #{@content};
-          RETURN NULL;
-        END
-      $$ LANGUAGE plpgsql;
+    CREATE OR REPLACE FUNCTION #{name}() RETURNS TRIGGER
+    AS $$
+      BEGIN
+        #{@content};
+        RETURN NULL;
+      END
+    $$ LANGUAGE plpgsql;
     SQL
   end
 

@@ -21,6 +21,14 @@ class PgTrigger::IndentedString
     self
   end
 
+  def append_raw_string(str)
+    str.each_line do |l|
+      @inner << @spaces << l
+    end
+    endline
+    self
+  end
+
   def append_newline(str)
     @inner << @spaces << str
     endline
