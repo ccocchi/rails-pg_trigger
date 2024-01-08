@@ -1,15 +1,17 @@
-require_relative "plan"
 require_relative "indented_string"
+require_relative "plan"
+require_relative "scanner"
 
 module PgTrigger
   module Generator
     class << self
-      def run
-
+      def run(models)
         triggers = models.filter_map { |m| m._triggers.presence }.flatten
-        existing = existing_triggers.to_h
-        plan = build_plan
-        raise "TODO: empty plan" if plan.empty?
+        scanner = Scanner.new(File.read(PgTrigger.structure_file_path))
+        existing = scanner.triggers.to_h
+
+        plan = Plan::Builder.new(triggers, existing).result
+        return if plan.empty?
 
         generate_migration(plan)
       end
@@ -17,16 +19,14 @@ module PgTrigger
       private
 
       def generate_migration(plan)
-        number = ActiveRecord::Generators::Migration.next_migration_number("db/migrate")
-        name = infer_name_from(plan)
-        source = generate_source(plan, name)
+        number = ActiveRecord::Generators::Migration.next_migration_number(PgTrigger.migrations_path)
+        source = generate_source(plan)
 
-        filename = "#{number}_#{name}.rb"
+        filename = "#{number}_#{plan.name}.rb"
         File.binwrite(filename, source)
 
         filename
       end
-
 
       def generate_source(plan, name)
         [
@@ -37,31 +37,10 @@ module PgTrigger
         ].join("\n")
       end
 
-      # TODO: maybe extract this into its own file
-      def existing_triggers
-        content = File.binread(PgTrigger.structure_file_path)
-        scanner = StringScanner.new(content)
-        existing = []
-
-        while true
-          break unless scanner.skip_until(/^CREATE FUNCTION /)
-          name = scanner.scan(/[\w\.]+_tr/)
-          next unless name
-
-          scanner.skip_until(/^BEGIN/)
-          content = scanner.scan_until(/^END/)
-
-          name.delete_prefix!("#{PgTrigger.schema}.")
-          existing << [name, content.strip]
-        end
-
-        existing
-      end
-
-      def models
-        Rails.application.eager_load! if defined?(Rails)
-        ActiveRecord::Base.descendants
-      end
+      # def models
+      #   Rails.application.eager_load! if defined?(Rails)
+      #   ActiveRecord::Base.descendants
+      # end
     end
   end
 end

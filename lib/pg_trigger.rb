@@ -9,9 +9,10 @@ module PgTrigger
   class GenerationError < StandardError; end
 
   class << self
-    attr_accessor :structure_file_path, :schema
+    attr_accessor :structure_file_path, :schema, :migrations_path
   end
 
   self.structure_file_path = "db/structure.sql"
   self.schema = "public"
+  self.migrations_path = "db/migrate"
 end

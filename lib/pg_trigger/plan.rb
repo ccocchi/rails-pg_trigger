@@ -35,6 +35,7 @@ module PgTrigger
     attr_reader :type, :table
 
     def initialize
+      @name = nil
       @type = nil
       @table = nil
       @actions = Hash.new { |h, k| h[k] = [] }.tap(&:compare_by_identity)
@@ -47,17 +48,19 @@ module PgTrigger
     def empty? = @actions.empty?
 
     def name
-      action = case type
-      when :create then "create"
-      when :drop then "drop"
-      when :update then "update"
-      else
-        "change"
+      @name ||= begin
+        action = case type
+        when :create then "create"
+        when :drop then "drop"
+        when :update then "update"
+        else
+          "change"
+        end
+
+        table_name = table == :multi ? "multiple_tables" : table
+
+        "#{action}_triggers_on_#{table}"
       end
-
-      table_name = table == :multi ? "multiple_tables" : table
-
-      "#{action}_triggers_on_#{table}"
     end
 
     def add_trigger(t)
