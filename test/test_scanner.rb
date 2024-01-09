@@ -20,8 +20,8 @@ class TestScanner < Minitest::Test
 
     t = triggers.first
 
-    assert_equal "comments_after_insert_tr", t[0]
+    assert_equal "comments_after_insert_tr", t.name
     expected_content = "UPDATE posts SET comments_count = comments_count + 1 WHERE id = NEW.comment_id;"
-    assert_equal expected_content, t[1].split("\n").first
+    assert_equal expected_content, t.content
   end
 end

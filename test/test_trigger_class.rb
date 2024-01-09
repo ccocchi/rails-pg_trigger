@@ -88,4 +88,40 @@ class TestTriggerClass < Minitest::Test
 
     assert_equal expected, trigger.create_trigger_sql
   end
+
+  def test_from_definition_from_simple_trigger
+    defn = <<~SQL
+      CREATE TRIGGER comments_after_update_tr AFTER UPDATE OF content, title ON public.comments FOR EACH ROW EXECUTE FUNCTION comments_after_update_tr();
+    SQL
+
+    tr = PgTrigger::Trigger.from_definition(defn)
+
+    assert_equal "comments_after_update_tr", tr.name
+    assert_equal :after, tr.timing
+    assert_equal [:update], tr.events
+    assert_equal "comments", tr.table
+    assert_equal ["content", "title"], tr.columns
+  end
+
+  def test_from_definition_with_full_trigger
+    defn = <<~SQL
+      CREATE TRIGGER comments_after_insert_tr BEFORE INSERT OR UPDATE ON public.comments FOR EACH ROW WHEN (NEW.is_published) EXECUTE FUNCTION comments_after_insert_tr();
+    SQL
+
+    tr = PgTrigger::Trigger.from_definition(defn)
+
+    assert_equal "comments_after_insert_tr", tr.name
+    assert_equal :before, tr.timing
+    assert_equal [:insert, :update], tr.events
+    assert_equal "comments", tr.table
+    assert_equal "NEW.is_published", tr.where_clause
+  end
+
+  def test_invalid_definition
+    defn = "invalid"
+
+    assert_raises PgTrigger::InvalidTriggerDefinition do
+      PgTrigger::Trigger.from_definition(defn)
+    end
+  end
 end

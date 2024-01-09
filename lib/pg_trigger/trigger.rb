@@ -1,126 +1,171 @@
 # frozen_string_literal: true
 
-class PgTrigger::Trigger
-  def self.chain(*methods)
-    methods.each do |method|
-      class_eval <<-RUBY, __FILE__, __LINE__ + 1
-        alias orig_#{method} #{method}
+module PgTrigger
+  class Trigger
+    class << self
+      def chain(*methods)
+        methods.each do |method|
+          class_eval <<-RUBY, __FILE__, __LINE__ + 1
+            alias orig_#{method} #{method}
 
-        def #{method}(*args, &block)
-          orig_#{method}(*args)
-          @content = yield if block
-          self
+            def #{method}(*args, &block)
+              orig_#{method}(*args)
+              @content = yield if block
+              self
+            end
+          RUBY
         end
-      RUBY
-    end
-  end
+      end
 
-  attr_reader :table, :timing, :content, :columns, :events
+      DEFN_REGEXP = [
+        "\\ACREATE TRIGGER",
+        "(?<name>\\w+)",
+        "(?<timing>AFTER|BEFORE)",
+        "(?<events>(?:INSERT|UPDATE|DELETE)(?: OR (?:INSERT|UPDATE|DELETE))?)",
+        "(?:OF(?<columns>(?:\\s[a-z0-9_]+,?)+)\\s)?ON (?:[\\w\"]+\\.)?(?<table>\\w+)",
+        "FOR EACH ROW(?: WHEN \\((?<where>[^\\)]+)\\))?",
+        "EXECUTE FUNCTION (?:\\w+\\.)?(?<fn>\\w+)",
+      ].join("\\s")
+      .yield_self { |str| Regexp.new(str) }
 
-  def initialize
-    @name     = nil
-    @table    = nil
-    @timing   = nil
-    @events   = []
-    @columns  = []
-    @content  = nil
-    @where    = nil
-    @options  = {}
-  end
+      def from_definition(defn)
+        match = defn.match(DEFN_REGEXP)
+        raise InvalidTriggerDefinition, defn unless match
 
-  def on(table_name)
-    @table = table_name
-  end
+        trigger = new
+        trigger.named(match[:name]).on(match[:table])
+        trigger.public_send(match[:timing].downcase, *match[:events].split(" OR ").map! { |e| e.downcase.to_sym })
 
-  def after(*events)
-    @timing = :after
-    @events.concat(format_events(events))
-  end
+        if (cols = match[:columns])
+          trigger.of(*cols.split(", ").map!(&:lstrip))
+        end
 
-  def before(*events)
-    @timing = :before
-    @events.concat(format_events(events))
-  end
+        if (where = match[:where])
+          trigger.where(where)
+        end
 
-  def of(*columns)
-    @columns.concat(columns)
-  end
-
-  def where(condition)
-    @where = condition
-  end
-
-  def named(name)
-    @name = name
-  end
-
-  def nowrap
-    @options[:nowrap] = true
-  end
-
-  chain :on, :of, :after, :before, :named, :where, :nowrap
-
-  def name
-    @name ||= inferred_name
-  end
-
-  def create_function?
-    !@options[:nowrap]
-  end
-
-  def create_function_sql
-    <<~SQL
-    CREATE OR REPLACE FUNCTION #{name}() RETURNS TRIGGER
-    AS $$
-      BEGIN
-        #{@content};
-        RETURN NULL;
-      END
-    $$ LANGUAGE plpgsql;
-    SQL
-  end
-
-  def create_trigger_sql
-    whr = @where.nil? ? "" : "\nWHEN (#@where)\n"
-
-    <<~SQL
-      CREATE TRIGGER #{name}
-      #{@timing.upcase} #{events.map(&:upcase).join(" OR ")} ON #{adapter.quote_table_name(@table)}
-      FOR EACH ROW#{whr}
-      EXECUTE FUNCTION #{name}();
-    SQL
-  end
-
-  def drop_function_sql
-    "DROP FUNCTION IF EXISTS #{name};"
-  end
-
-  def drop_trigger_sql
-    "DROP TRIGGER IF EXISTS #{name} ON #{adapter.quote_table_name(@table)};"
-  end
-
-  private
-
-  def format_events(ary)
-    ary.map do |e|
-      case e
-      when :insert, :update, :delete then e
-      when :create then :insert
-      when :destroy then :delete
-      else
-        raise ArgumentError, "trigger event should be :insert, :update or :delete"
+        trigger.nowrap if match[:fn] != match[:name]
+        trigger
       end
     end
-  end
 
-  def adapter
-    @adapter ||= ActiveRecord::Base.connection
-  end
+    attr_reader :table, :timing, :content, :columns, :events
 
-  def inferred_name
-    [@table,
-     @timing,
-     @events.join("_or_"),
-    ].join("_").downcase.slice(0, 60) << "_tr"
+    def initialize
+      @name     = nil
+      @table    = nil
+      @timing   = nil
+      @events   = []
+      @columns  = []
+      @content  = nil
+      @where    = nil
+      @options  = {}
+    end
+
+    def on(table_name)
+      @table = table_name
+    end
+
+    def after(*events)
+      @timing = :after
+      @events.concat(format_events(events))
+    end
+
+    def before(*events)
+      @timing = :before
+      @events.concat(format_events(events))
+    end
+
+    def of(*columns)
+      @columns.concat(columns)
+    end
+
+    def where(condition)
+      @where = condition
+    end
+
+    def named(name)
+      @name = name
+    end
+
+    def nowrap
+      @options[:nowrap] = true
+    end
+
+    chain :on, :of, :after, :before, :named, :where, :nowrap
+
+    def name
+      @name ||= inferred_name
+    end
+
+    def where_clause = @where
+
+    FN_CONTENT_REGEX = /BEGIN\s+(?<content>.+;)\n\s+RETURN NULL;/
+
+    def set_content_from_function(str)
+      if (match = str.match(FN_CONTENT_REGEX))
+        @content = match[:content]
+      end
+    end
+
+    def create_function?
+      !@options[:nowrap]
+    end
+
+    def create_function_sql
+      <<~SQL
+      CREATE OR REPLACE FUNCTION #{name}() RETURNS TRIGGER
+      AS $$
+        BEGIN
+          #{@content};
+          RETURN NULL;
+        END
+      $$ LANGUAGE plpgsql;
+      SQL
+    end
+
+    def create_trigger_sql
+      whr = @where.nil? ? "" : "\nWHEN (#@where)\n"
+
+      <<~SQL
+        CREATE TRIGGER #{name}
+        #{@timing.upcase} #{events.map(&:upcase).join(" OR ")} ON #{adapter.quote_table_name(@table)}
+        FOR EACH ROW#{whr}
+        EXECUTE FUNCTION #{name}();
+      SQL
+    end
+
+    def drop_function_sql
+      "DROP FUNCTION IF EXISTS #{name};"
+    end
+
+    def drop_trigger_sql
+      "DROP TRIGGER IF EXISTS #{name} ON #{adapter.quote_table_name(@table)};"
+    end
+
+    private
+
+    def format_events(ary)
+      ary.map do |e|
+        case e
+        when :insert, :update, :delete then e
+        when :create then :insert
+        when :destroy then :delete
+        else
+          raise ArgumentError, "unknown #{e}, event should be :insert, :update or :delete"
+        end
+      end
+    end
+
+    def adapter
+      @adapter ||= ActiveRecord::Base.connection
+    end
+
+    def inferred_name
+      [@table,
+      @timing,
+      @events.join("_or_"),
+      ].join("_").downcase.slice(0, 60) << "_tr"
+    end
   end
 end

@@ -34,3 +34,15 @@ BEGIN
     RETURN NULL;
 END;
 $$;
+
+--
+-- Name: comments comments_after_insert_tr; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER comments_after_insert_tr AFTER INSERT ON public.comments FOR EACH ROW EXECUTE FUNCTION public.comments_after_insert_tr();
+
+--
+-- Name: comments comments_after_delete_tr; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER comments_after_delete_tr AFTER DELETE ON public.comments FOR EACH ROW EXECUTE FUNCTION public.comments_after_delete_tr();

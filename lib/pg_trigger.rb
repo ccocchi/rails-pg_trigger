@@ -7,6 +7,7 @@ require_relative "pg_trigger/generator"
 
 module PgTrigger
   class GenerationError < StandardError; end
+  class InvalidTriggerDefinition < StandardError; end
 
   class << self
     attr_accessor :structure_file_path, :schema, :migrations_path

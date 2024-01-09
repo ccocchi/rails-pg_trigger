@@ -23,6 +23,6 @@ class TestGenerator < Minitest::Test
 
   def assert_output_matches_file(filename, output)
     expected = File.binread(File.join(EXPECTATIONS_PATH, filename))
-    assert_equal expected, output
+    assert_equal expected.sub!(%r{7\.0}, ActiveRecord::Migration.current_version.to_s), output
   end
 end
