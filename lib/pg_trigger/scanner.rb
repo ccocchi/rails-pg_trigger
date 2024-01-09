@@ -24,6 +24,8 @@ module PgTrigger
       end
     end
 
+    private
+
     def parse
       scanner = ::StringScanner.new(@str)
       pos = 0
@@ -52,55 +54,6 @@ module PgTrigger
         defn = scanner.scan_until(/;/)
         @definitions << defn
       end
-    end
-  end
-
-  class Scanner2
-    def initialize(io)
-      @io = io
-      @functions = {}
-      @definitions = []
-
-      parse
-    end
-
-    def triggers
-      @definitions.map do |defn|
-        trigger = Trigger.from_definition(defn)
-
-        if (fn = @functions[trigger.name])
-          trigger.set_content_from_function(fn)
-        end
-
-        trigger
-      end
-    end
-
-    private
-
-    def parse
-      while (block = next_block)
-        if (match = block.match(%r{\ACREATE FUNCTION (?:\w+.)?(\w+_tr)\(\)}))
-          @functions[match[1]] = block
-        elsif block.start_with?("CREATE TRIGGER")
-          @definitions << block
-        end
-      end
-    end
-
-    def next_block
-      block = +""
-
-      while (line = @io.gets)
-        if line == "\n"
-          break if block.size > 0
-          next # skip newlines at the start of a block
-        end
-
-        block << line unless line.start_with?('--')
-      end
-
-      block == "" ? nil : block
     end
   end
 end

@@ -57,9 +57,9 @@ module PgTrigger
           "change"
         end
 
-        table_name = table == :multi ? "multiple_tables" : table
+        table_name = table == "multiple" ? "multiple_tables" : table
 
-        "#{action}_triggers_on_#{table}"
+        "#{action}_triggers_on_#{table_name}"
       end
     end
 

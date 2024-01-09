@@ -62,6 +62,14 @@ class TestPlan < Minitest::Test
     assert_equal "users", plan.table
   end
 
+  def test_mixing_tables
+    plan.add_trigger(trigger)
+    plan.add_trigger(PgTrigger::Trigger.new.on("comments").after(:insert))
+
+    assert_equal :create, plan.type
+    assert_equal "multiple", plan.table
+  end
+
   def test_updating_trigger
     plan.update_trigger(trigger)
 
