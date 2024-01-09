@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require "test_helper"
 
 class TestTriggerClass < Minitest::Test
@@ -48,6 +46,16 @@ class TestTriggerClass < Minitest::Test
     assert_equal "users_after_insert_tr", trigger.name
   end
 
+  def test_content_with_trailing_spaces
+    trigger.named("ok_tr") { "SELECT 1;\n" }
+    assert_equal "SELECT 1;", trigger.content
+  end
+
+  def test_ensure_colon_after_content
+    trigger.named("ok_tr") { "SELECT 1" }
+    assert_equal "SELECT 1;", trigger.content
+  end
+
   def test_inferred_name
     trigger.on("users").before(:insert, :update)
     assert_equal "users_before_insert_or_update_tr", trigger.name
@@ -59,7 +67,7 @@ class TestTriggerClass < Minitest::Test
     assert_equal :after, trigger.timing
     assert_equal [:update], trigger.events
     assert_equal [:a, :b], trigger.columns
-    assert_equal "SQL", trigger.content
+    assert_equal "SQL;", trigger.content
   end
 
   def test_create_function_sql

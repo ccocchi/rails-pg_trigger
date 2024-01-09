@@ -1,9 +1,22 @@
-# frozen_string_literal: true
-
 require "test_helper"
 
 class TestGenerator < Minitest::Test
   EXPECTATIONS_PATH = File.join(File.expand_path(__dir__), "expectations")
+
+  def test_run_nothing_to_do
+    result = PgTrigger::Generator.run(models: [Comment])
+    assert_nil result
+  end
+
+  def test_run_adding_triggers
+    result = PgTrigger::Generator.run(models: [Post, Comment])
+    assert_path_exists File.join(MIGRATIONS_DIR, result)
+  end
+
+  def test_run_removing_triggers
+    result = PgTrigger::Generator.run(models: [])
+    assert_path_exists File.join(MIGRATIONS_DIR, result)
+  end
 
   def test_generate_create_trigger
     plan = PgTrigger::Plan.new

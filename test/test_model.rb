@@ -1,10 +1,13 @@
-# frozen_string_literal: true
-
 require "test_helper"
 
 class TestModel < Minitest::Test
-  def teardown
+  def setup
+    @_triggers = Comment._triggers
     Comment.instance_variable_set :@_triggers, nil
+  end
+
+  def teardown
+    Comment.instance_variable_set :@_triggers, @_triggers
   end
 
   def test_no_trigger
@@ -20,8 +23,10 @@ class TestModel < Minitest::Test
   end
 
   def test_many_triggers
-    Comment.trigger.after(:insert) { "select 1;" }
-    Comment.trigger.before(:insert, :delete) { "select 3;"}
+    Comment.class_eval <<-RUBY, __FILE__, __LINE__ + 1
+      trigger.after(:insert) { "select 1;" }
+      trigger.before(:insert, :delete) { "select 3;"}
+    RUBY
 
     assert_instance_of Array, Comment._triggers
     assert_equal 2, Comment._triggers.size

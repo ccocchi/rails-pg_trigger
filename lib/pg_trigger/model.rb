@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "trigger"
+
 module PgTrigger::Model
   def self.included(other)
     other.extend ClassMethods

@@ -8,3 +8,5 @@
 /tmp/
 
 /test/database.yml
+/.byebug_history
+/Gemfile.lock

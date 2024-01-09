@@ -5,7 +5,7 @@ require_relative "scanner"
 module PgTrigger
   module Generator
     class << self
-      def run(models)
+      def run(models:)
         triggers = models.filter_map { |m| m._triggers.presence }.flatten
         scanner = Scanner.new(File.read(PgTrigger.structure_file_path))
         existing = scanner.triggers

@@ -10,7 +10,7 @@ module PgTrigger
 
             def #{method}(*args, &block)
               orig_#{method}(*args)
-              @content = yield if block
+              @content = format_content(yield) if block
               self
             end
           RUBY
@@ -117,7 +117,7 @@ module PgTrigger
       CREATE OR REPLACE FUNCTION #{name}() RETURNS TRIGGER
       AS $$
         BEGIN
-          #{@content};
+          #{@content}
           RETURN NULL;
         END
       $$ LANGUAGE plpgsql;
@@ -155,6 +155,11 @@ module PgTrigger
           raise ArgumentError, "unknown #{e}, event should be :insert, :update or :delete"
         end
       end
+    end
+
+    def format_content(str)
+      str.rstrip!
+      str.end_with?(";") ? str : "#{str};"
     end
 
     def adapter

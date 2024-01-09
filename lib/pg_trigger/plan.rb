@@ -1,3 +1,7 @@
+# frozen_string_literal: true
+
+require_relative "trigger"
+
 module PgTrigger
   # This class represents the actions needed to go from the existing triggers to
   # the expected triggers defined in the models.

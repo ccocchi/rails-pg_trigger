@@ -10,7 +10,7 @@ namespace :db do
       require "pg_trigger/generator"
 
       Rails.application.eager_load!
-      filename = PgTrigger::Generator.run(ActiveRecord::Base.descendants)
+      filename = PgTrigger::Generator.run(models: ActiveRecord::Base.descendants)
 
       if filename
         puts "Generated #{filename}"
