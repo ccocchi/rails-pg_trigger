@@ -8,7 +8,7 @@ module PgTrigger
       def run(models)
         triggers = models.filter_map { |m| m._triggers.presence }.flatten
         scanner = Scanner.new(File.read(PgTrigger.structure_file_path))
-        existing = scanner.triggers.to_h
+        existing = scanner.triggers
 
         plan = Plan::Builder.new(triggers, existing).result
         return if plan.empty?
@@ -67,6 +67,16 @@ module PgTrigger
 
           up.append_raw_string trigger.create_trigger_sql
           down.append_raw_string trigger.drop_trigger_sql
+        end
+
+        @plan.removed_triggers.each do |trigger|
+          if trigger.create_function?
+            down.append_raw_string trigger.create_function_sql
+            up.append_raw_string trigger.drop_function_sql
+          end
+
+          down.append_raw_string trigger.create_trigger_sql
+          up.append_raw_string trigger.drop_trigger_sql
         end
 
         up.outdent.append_newline("SQL").outdent.append_newline("end")

@@ -14,18 +14,18 @@ module PgTrigger
 
         # Find new or updated triggers
         @expected.each do |t|
-          existing_content = @existing[t.name]
-          if existing_content
-            plan.update_trigger(t) if t.content != existing_content
+          e = @existing.find { |_t| _t.name == t.name }
+          if e
+            plan.update_trigger(t) if t.content != e.content
           else
             plan.add_trigger(t)
           end
         end
 
         # Find removed triggers
-        @existing.each_key do |name|
-          next if @expected.any? { |t| t.name == name }
-          plan.drop_trigger_by_name(name)
+        @existing.each do |e|
+          next if @expected.any? { |t| t.name == e.name }
+          plan.drop_trigger(e)
         end
 
         plan
@@ -70,20 +70,18 @@ module PgTrigger
       @actions[:to_add] << t
     end
 
-    def drop_trigger_by_name(name)
+    def drop_trigger(t)
       set_type :drop
-      if (data = name.match(/\A(\w+)_(before|after)_/))
-        set_table data[1]
-      end
+      set_table t.table
 
-      @actions[:to_remove] << name
+      @actions[:to_remove] << t
     end
 
     def update_trigger(t)
       set_type :update
       set_table t.table
 
-      @actions[:to_remove] << t.name
+      @actions[:to_remove] << t
       @actions[:to_add] << t
     end
 

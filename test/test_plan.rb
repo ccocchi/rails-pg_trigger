@@ -35,8 +35,8 @@ class TestPlan < Minitest::Test
     assert_plan_has_actions :to_add
   end
 
-  def test_dropping_trigger_by_name
-    plan.drop_trigger_by_name("users_after_insert_tr")
+  def test_dropping_trigger
+    plan.drop_trigger(trigger)
 
     assert_equal :drop, plan.type
     assert_equal "users", plan.table
@@ -46,7 +46,7 @@ class TestPlan < Minitest::Test
 
   def test_mixing_adds_and_drops
     plan.add_trigger(trigger)
-    plan.drop_trigger_by_name("comments_after_insert_tr")
+    plan.drop_trigger(PgTrigger::Trigger.new.on("comments"))
 
     assert_equal :multi, plan.type
     assert_equal "multiple", plan.table
@@ -56,7 +56,7 @@ class TestPlan < Minitest::Test
 
   def test_mixing_adds_and_drops_on_same_table
     plan.add_trigger(trigger)
-    plan.drop_trigger_by_name("users_after_insert_tr")
+    plan.drop_trigger(trigger)
 
     assert_equal :multi, plan.type
     assert_equal "users", plan.table
@@ -85,7 +85,7 @@ class TestPlan < Minitest::Test
   end
 
   def test_name_on_trigger_drop
-    plan.drop_trigger_by_name("users_after_insert_tr")
+    plan.drop_trigger(trigger)
     assert_equal "drop_triggers_on_users", plan.name
   end
 
