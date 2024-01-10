@@ -158,7 +158,7 @@ module PgTrigger
     end
 
     def format_content(str)
-      str.rstrip!
+      str = str.rstrip
       str.end_with?(";") ? str : "#{str};"
     end
 

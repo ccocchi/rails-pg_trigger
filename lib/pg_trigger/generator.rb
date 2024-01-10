@@ -1,4 +1,5 @@
 require_relative "indented_string"
+require_relative "model"
 require_relative "plan"
 require_relative "scanner"
 

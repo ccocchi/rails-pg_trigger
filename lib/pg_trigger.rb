@@ -1,10 +1,9 @@
 # frozen_string_literal: true
 
 require_relative "pg_trigger/version"
-require_relative "pg_trigger/model"
+require_relative "pg_trigger/railtie"
 
 module PgTrigger
-  class GenerationError < StandardError; end
   class InvalidTriggerDefinition < StandardError; end
 
   class << self
