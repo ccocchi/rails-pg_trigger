@@ -125,8 +125,8 @@ module PgTrigger
     end
 
     def create_function_sql
-      str = IndentedString.new("", size: 4).empty
-      str.append_raw_string(@content, newline: false)
+      str = IndentedString.new(size: 4)
+      str += @content
 
       <<~SQL
         CREATE OR REPLACE FUNCTION #{name}() RETURNS TRIGGER

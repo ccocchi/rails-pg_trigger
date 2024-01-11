@@ -1,49 +1,52 @@
 # frozen_string_literal: true
 
 class PgTrigger::IndentedString
-  def initialize(str, size:)
+  def initialize(size:, initial_indent: true)
     @spaces = " " * size
-    @inner = @spaces + str
-  end
-
-  def empty
     @inner = +""
-    self
+    @start = initial_indent
   end
 
-  def indent
+  def indent!
     @spaces << "  "
-    self
   end
 
-  def outdent
+  def outdent!
     @spaces.slice!(-2, 2)
-    self
   end
 
   def append(str)
     @inner << @spaces << str
     self
   end
+  alias_method :<<, :append
 
-  def append_raw_string(str, newline: true)
+  def +(str)
     str.each_line do |l|
       @inner << @spaces << l
     end
-    endline if newline
     self
   end
 
-  def append_newline(str)
-    @inner << @spaces << str
-    endline
-  end
-  alias_method :<<, :append_newline
-
-  def endline
+  def newline
     @inner << "\n"
-    self
   end
+
+  # def append_raw_string(str, newline: true)
+  #   endline if newline
+  #   self
+  # end
+
+  # def append_newline(str)
+  #   @inner << @spaces << str
+  #   endline
+  # end
+  # alias_method :<<, :append_newline
+
+  # def endline
+  #   @inner << "\n"
+  #   self
+  # end
 
   def to_s = @inner
 

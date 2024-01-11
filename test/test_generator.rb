@@ -42,6 +42,7 @@ class TestGenerator < Minitest::Test
     migration = PgTrigger::Generator::Migration.new(plan)
     output = migration.generate_output
 
+
     assert_match %r{\d+_drop_triggers_on_comments.rb}, migration.name
     assert_output_matches_file "drop_triggers_on_comments.rb", output
   end
@@ -50,6 +51,11 @@ class TestGenerator < Minitest::Test
 
   def assert_output_matches_file(filename, output)
     expected = File.binread(File.join(EXPECTATIONS_PATH, filename))
+    # puts
+    # puts output.inspect
+    # puts
+    # puts expected.inspect
+
     assert_equal expected.sub!(%r{7\.0}, ActiveRecord::Migration.current_version.to_s), output
   end
 end

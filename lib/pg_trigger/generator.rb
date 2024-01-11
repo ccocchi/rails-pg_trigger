@@ -43,7 +43,9 @@ module PgTrigger
       def generate_output
         @output = ""
         header
-        up_and_down
+        up(:up)
+        @output << "\n"
+        up(:down)
         footer
       end
 
@@ -56,34 +58,56 @@ module PgTrigger
         @output << "class #{migration_name} < ActiveRecord::Migration[#{ActiveRecord::Migration.current_version}]\n"
       end
 
-      def up_and_down
-        up = IndentedString.new("def up\n", size: 2).indent.append_newline("execute <<-SQL").indent
-        down = IndentedString.new("def down\n", size: 2).indent.append_newline("execute <<-SQL").indent
+      def up(dir)
+        res = IndentedString.new(size: 2, initial_indent: true)
+        res << "def #{dir}\n"
+        res.indent!
 
-        @plan.new_triggers.each do |trigger|
-          up.append_raw_string trigger.create_function_sql if trigger.create_function?
-          up.append_raw_string trigger.create_trigger_sql
-
-          down.append_raw_string trigger.drop_trigger_sql
-          down.append_raw_string trigger.drop_function_sql if trigger.create_function?
+        create = ->(t) do
+          execute_block(res) do
+            if t.create_function?
+              res += t.create_function_sql
+              res.newline
+            end
+            res += t.create_trigger_sql
+            res.newline
+          end
         end
 
-        @plan.removed_triggers.each do |trigger|
-          up.append_raw_string trigger.drop_trigger_sql
-          up.append_raw_string trigger.drop_function_sql if trigger.create_function?
-
-          down.append_raw_string trigger.create_function_sql if trigger.create_function?
-          down.append_raw_string trigger.create_trigger_sql
+        drop = ->(t) do
+          execute_block(res) do
+            res += t.drop_trigger_sql
+            res.newline
+            if t.create_function?
+              res += t.drop_function_sql
+              res.newline
+            end
+          end
         end
 
-        up.outdent.append_newline("SQL").outdent.append_newline("end")
-        down.outdent.append_newline("SQL").outdent.append_newline("end")
+        @plan.new_triggers.each do |t|
+          (dir == :up ? create : drop).call(t)
+        end
 
-        @output << [up, down].join("\n")
+        @plan.removed_triggers.each do |t|
+          (dir == :up ? drop : create).call(t)
+        end
+
+        res.outdent!
+        res << "end\n"
+        @output << res.to_s
       end
 
       def footer
         @output << "end\n"
+      end
+
+      def execute_block(res)
+        res << "execute <<~SQL\n"
+        res.indent!
+        yield res
+        res.outdent!
+        res << "SQL\n\n"
       end
     end
   end
