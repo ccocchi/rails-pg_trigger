@@ -3,8 +3,8 @@
 class DropTriggersOnComments < ActiveRecord::Migration[7.0]
   def up
     execute <<-SQL
-      DROP FUNCTION IF EXISTS comments_before_update_tr;
       DROP TRIGGER IF EXISTS comments_before_update_tr ON "comments";
+      DROP FUNCTION IF EXISTS comments_before_update_tr;
     SQL
   end
 

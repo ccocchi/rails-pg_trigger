@@ -21,8 +21,8 @@ class CreateTriggersOnComments < ActiveRecord::Migration[7.0]
 
   def down
     execute <<-SQL
-      DROP FUNCTION IF EXISTS comments_after_insert_tr;
       DROP TRIGGER IF EXISTS comments_after_insert_tr ON "comments";
+      DROP FUNCTION IF EXISTS comments_after_insert_tr;
     SQL
   end
 end

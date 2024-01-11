@@ -61,23 +61,19 @@ module PgTrigger
         down = IndentedString.new("def down\n", size: 2).indent.append_newline("execute <<-SQL").indent
 
         @plan.new_triggers.each do |trigger|
-          if trigger.create_function?
-            up.append_raw_string trigger.create_function_sql
-            down.append_raw_string trigger.drop_function_sql
-          end
-
+          up.append_raw_string trigger.create_function_sql if trigger.create_function?
           up.append_raw_string trigger.create_trigger_sql
+
           down.append_raw_string trigger.drop_trigger_sql
+          down.append_raw_string trigger.drop_function_sql if trigger.create_function?
         end
 
         @plan.removed_triggers.each do |trigger|
-          if trigger.create_function?
-            down.append_raw_string trigger.create_function_sql
-            up.append_raw_string trigger.drop_function_sql
-          end
-
-          down.append_raw_string trigger.create_trigger_sql
           up.append_raw_string trigger.drop_trigger_sql
+          up.append_raw_string trigger.drop_function_sql if trigger.create_function?
+
+          down.append_raw_string trigger.create_function_sql if trigger.create_function?
+          down.append_raw_string trigger.create_trigger_sql
         end
 
         up.outdent.append_newline("SQL").outdent.append_newline("end")
