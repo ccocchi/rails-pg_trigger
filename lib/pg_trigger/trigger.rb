@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require "active_support/core_ext/string/strip"
+require_relative "indented_string"
+
 module PgTrigger
   class Trigger
     class << self
@@ -10,7 +13,7 @@ module PgTrigger
 
             def #{method}(*args, &block)
               orig_#{method}(*args)
-              @content = format_content(yield) if block
+              @content = normalize_string(yield) if block
               self
             end
           RUBY
@@ -30,7 +33,11 @@ module PgTrigger
 
       def from_definition(defn)
         match = defn.match(DEFN_REGEXP)
-        raise InvalidTriggerDefinition, defn unless match
+
+        if !match
+          raise InvalidTriggerDefinition, defn if PgTrigger.raise_on_invalid_definition
+          return
+        end
 
         trigger = new
         trigger.named(match[:name]).on(match[:table])
@@ -100,7 +107,12 @@ module PgTrigger
 
     def where_clause = @where
 
-    FN_CONTENT_REGEX = /BEGIN\s+(?<content>.+;)\n\s+RETURN NULL;/
+    # Compare content without taking indentation into account
+    def same_content_as?(other)
+      content.gsub(/\s+/, " ") == other.content.gsub(/\s+/, " ")
+    end
+
+    FN_CONTENT_REGEX = /BEGIN\s+(?<content>.+;)\n\s+RETURN NULL;/m
 
     def set_content_from_function(str)
       if (match = str.match(FN_CONTENT_REGEX))
@@ -113,19 +125,22 @@ module PgTrigger
     end
 
     def create_function_sql
+      str = IndentedString.new("", size: 4).empty
+      str.append_raw_string(@content, newline: false)
+
       <<~SQL
-      CREATE OR REPLACE FUNCTION #{name}() RETURNS TRIGGER
-      AS $$
-        BEGIN
-          #{@content}
-          RETURN NULL;
-        END
-      $$ LANGUAGE plpgsql;
+        CREATE OR REPLACE FUNCTION #{name}() RETURNS TRIGGER
+        AS $$
+          BEGIN
+        #{str}
+            RETURN NULL;
+          END
+        $$ LANGUAGE plpgsql;
       SQL
     end
 
     def create_trigger_sql
-      whr = @where.nil? ? "" : "\nWHEN (#@where)\n"
+      whr = @where.nil? ? "" : "\nWHEN (#@where)"
 
       <<~SQL
         CREATE TRIGGER #{name}
@@ -157,8 +172,9 @@ module PgTrigger
       end
     end
 
-    def format_content(str)
-      str = str.rstrip
+    def normalize_string(str)
+      str = str.strip_heredoc
+      str.rstrip!
       str.end_with?(";") ? str : "#{str};"
     end
 

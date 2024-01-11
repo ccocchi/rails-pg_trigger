@@ -6,6 +6,11 @@ class PgTrigger::IndentedString
     @inner = @spaces + str
   end
 
+  def empty
+    @inner = +""
+    self
+  end
+
   def indent
     @spaces << "  "
     self
@@ -21,11 +26,11 @@ class PgTrigger::IndentedString
     self
   end
 
-  def append_raw_string(str)
+  def append_raw_string(str, newline: true)
     str.each_line do |l|
       @inner << @spaces << l
     end
-    endline
+    endline if newline
     self
   end
 

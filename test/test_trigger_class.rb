@@ -70,6 +70,30 @@ class TestTriggerClass < Minitest::Test
     assert_equal "SQL;", trigger.content
   end
 
+  def test_same_content_with_single_line_strings
+    trigger.named("first") { "UPDATE flurbos SET cnt = 100" }
+    other = PgTrigger::Trigger.new.named("first") { "UPDATE flurbos SET cnt = 100" }
+
+    assert trigger.same_content_as?(other)
+  end
+
+  def test_same_content_with_multiline_strings
+    trigger.named("first") do
+      <<-SQL
+        UPDATE flurbos SET cnt = 100
+          WHERE id = 1
+      SQL
+    end
+    other = PgTrigger::Trigger.new.named("first") do
+      <<~SQL
+        UPDATE flurbos
+        SET cnt = 100 WHERE id = 1
+      SQL
+    end
+
+    assert trigger.same_content_as?(other)
+  end
+
   def test_create_function_sql
     content = "UPDATE posts SET comments_count = comments_count + 1"
     trigger.on("comments").after(:insert).named("foo_tr") { content }
@@ -78,6 +102,31 @@ class TestTriggerClass < Minitest::Test
 
     assert_match %r{CREATE OR REPLACE FUNCTION foo_tr\(\) RETURNS TRIGGER}, sql
     assert_match %r{BEGIN\s+#{Regexp.escape(content)};\s+RETURN NULL;\s+END}, sql
+  end
+
+  def test_create_function_sql_with_multiline_content
+    content = <<-SQL
+      UPDATE posts SET comments_count = comments_count + 1
+      WHERE posts.id IN (
+        SELECT NEW.post_id
+      )
+    SQL
+    trigger.on("comments").after(:insert).named("foo_tr") { content }
+
+    expected = <<~SQL
+      CREATE OR REPLACE FUNCTION foo_tr() RETURNS TRIGGER
+      AS $$
+        BEGIN
+          UPDATE posts SET comments_count = comments_count + 1
+          WHERE posts.id IN (
+            SELECT NEW.post_id
+          );
+          RETURN NULL;
+        END
+      $$ LANGUAGE plpgsql;
+    SQL
+
+    assert_equal expected, trigger.create_function_sql
   end
 
   def test_drop_function_sql
@@ -92,6 +141,19 @@ class TestTriggerClass < Minitest::Test
       AFTER INSERT OR UPDATE ON "comments"
       FOR EACH ROW
       EXECUTE FUNCTION foo_tr();
+    SQL
+
+    assert_equal expected, trigger.create_trigger_sql
+  end
+
+  def test_create_trigger_sql_with_condition
+    trigger.on("comments").after(:insert).where("NEW.published").named("foo_published_tr")
+    expected = <<~SQL
+      CREATE TRIGGER foo_published_tr
+      AFTER INSERT ON "comments"
+      FOR EACH ROW
+      WHEN (NEW.published)
+      EXECUTE FUNCTION foo_published_tr();
     SQL
 
     assert_equal expected, trigger.create_trigger_sql
@@ -126,10 +188,17 @@ class TestTriggerClass < Minitest::Test
   end
 
   def test_invalid_definition
-    defn = "invalid"
+    tr = PgTrigger::Trigger.from_definition("invalid")
+    assert_nil tr
+  end
+
+  def test_invalid_definition_raise_option
+    PgTrigger.raise_on_invalid_definition = true
 
     assert_raises PgTrigger::InvalidTriggerDefinition do
-      PgTrigger::Trigger.from_definition(defn)
+      PgTrigger::Trigger.from_definition("invalid")
     end
+  ensure
+    PgTrigger.raise_on_invalid_definition = false
   end
 end

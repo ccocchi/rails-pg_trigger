@@ -20,7 +20,7 @@ module PgTrigger
         @expected.each do |t|
           e = @existing.find { |_t| _t.name == t.name }
           if e
-            plan.update_trigger(t) if t.content != e.content
+            plan.update_trigger(t) unless t.same_content_as?(e)
           else
             plan.add_trigger(t)
           end

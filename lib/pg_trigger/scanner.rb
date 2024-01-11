@@ -13,8 +13,10 @@ module PgTrigger
     end
 
     def triggers
-      @definitions.map do |defn|
+      @definitions.filter_map do |defn|
         trigger = Trigger.from_definition(defn)
+        next nil unless trigger
+        next nil unless trigger.name.end_with?("_tr")
 
         if (fn = @functions[trigger.name])
           trigger.set_content_from_function(fn)
@@ -39,7 +41,7 @@ module PgTrigger
         name = scanner.scan(/[\w\.]+_tr/)
         next unless name
 
-        content = scanner.scan_until(/^\$\$;/)
+        content = scanner.scan_until(/^\s*\$\$;/)
         pos = scanner.pos
 
         name.delete_prefix!(prefix) if prefix

@@ -46,3 +46,7 @@ CREATE TRIGGER comments_after_insert_tr AFTER INSERT ON public.comments FOR EACH
 --
 
 CREATE TRIGGER comments_after_delete_tr AFTER DELETE ON public.comments FOR EACH ROW EXECUTE FUNCTION public.comments_after_delete_tr();
+
+-- Ignored by scanner because it does not end with `_tr`
+
+CREATE TRIGGER ignored_by_scanner AFTER DELETE ON public.comments FOR EACH ROW EXECUTE FUNCTION public.ignored_by_scanner();
