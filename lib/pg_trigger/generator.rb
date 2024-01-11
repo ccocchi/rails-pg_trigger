@@ -64,35 +64,29 @@ module PgTrigger
         res.indent!
 
         create = ->(t) do
-          execute_block(res) do
+          execute_block do |s|
             if t.create_function?
-              res += t.create_function_sql
-              res.newline
+              s += t.create_function_sql
+              s.newline
             end
-            res += t.create_trigger_sql
-            res.newline
+            s += t.create_trigger_sql
           end
         end
 
         drop = ->(t) do
-          execute_block(res) do
-            res += t.drop_trigger_sql
-            res.newline
+          execute_block do |s|
+            s += t.drop_trigger_sql
+            s.newline
             if t.create_function?
-              res += t.drop_function_sql
-              res.newline
+              s += t.drop_function_sql
             end
           end
         end
 
-        @plan.new_triggers.each do |t|
-          (dir == :up ? create : drop).call(t)
-        end
+        blocks = @plan.new_triggers.map { |t| (dir == :up ? create : drop).call(t) }
+        blocks.concat @plan.removed_triggers.map { |t| (dir == :up ? drop : create).call(t) }
 
-        @plan.removed_triggers.each do |t|
-          (dir == :up ? drop : create).call(t)
-        end
-
+        res += blocks.join("\n")
         res.outdent!
         res << "end\n"
         @output << res.to_s
@@ -102,12 +96,15 @@ module PgTrigger
         @output << "end\n"
       end
 
-      def execute_block(res)
+      def execute_block
+        res = IndentedString.new(size: 0)
         res << "execute <<~SQL\n"
         res.indent!
         yield res
         res.outdent!
-        res << "SQL\n\n"
+        res.newline
+        res << "SQL\n"
+        res.to_s
       end
     end
   end

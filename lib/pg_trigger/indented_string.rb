@@ -23,7 +23,11 @@ class PgTrigger::IndentedString
 
   def +(str)
     str.each_line do |l|
-      @inner << @spaces << l
+      if l == "\n"
+        @inner << l
+      else
+        @inner << @spaces << l
+      end
     end
     self
   end
