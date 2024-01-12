@@ -2,7 +2,7 @@
 
 class UpdateTriggersOnComments < ActiveRecord::Migration[7.0]
   def up
-    execute <<~SQL
+    create_trigger "comments_before_update_tr", <<~SQL
       CREATE OR REPLACE FUNCTION comments_before_update_tr() RETURNS TRIGGER
       AS $$
         BEGIN
@@ -18,19 +18,19 @@ class UpdateTriggersOnComments < ActiveRecord::Migration[7.0]
 
     SQL
 
-    execute <<~SQL
+    drop_trigger "comments_before_update_tr", <<~SQL
       DROP TRIGGER IF EXISTS comments_before_update_tr ON "comments";
       DROP FUNCTION IF EXISTS comments_before_update_tr;
     SQL
   end
 
   def down
-    execute <<~SQL
+    drop_trigger "comments_before_update_tr", <<~SQL
       DROP TRIGGER IF EXISTS comments_before_update_tr ON "comments";
       DROP FUNCTION IF EXISTS comments_before_update_tr;
     SQL
 
-    execute <<~SQL
+    create_trigger "comments_before_update_tr", <<~SQL
       CREATE OR REPLACE FUNCTION comments_before_update_tr() RETURNS TRIGGER
       AS $$
         BEGIN

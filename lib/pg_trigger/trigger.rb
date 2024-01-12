@@ -179,7 +179,7 @@ module PgTrigger
     end
 
     def adapter
-      @adapter ||= ActiveRecord::Base.connection
+      @adapter ||= ::ActiveRecord::Base.connection
     end
 
     def inferred_name

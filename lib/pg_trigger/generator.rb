@@ -64,7 +64,7 @@ module PgTrigger
         res.indent!
 
         create = ->(t) do
-          execute_block do |s|
+          add_command("create_trigger", t) do |s|
             if t.create_function?
               s += t.create_function_sql
               s.newline
@@ -74,7 +74,7 @@ module PgTrigger
         end
 
         drop = ->(t) do
-          execute_block do |s|
+          add_command("drop_trigger", t) do |s|
             s += t.drop_trigger_sql
             s.newline
             if t.create_function?
@@ -96,9 +96,9 @@ module PgTrigger
         @output << "end\n"
       end
 
-      def execute_block
+      def add_command(cmd, t)
         res = IndentedString.new(size: 0)
-        res << "execute <<~SQL\n"
+        res << %{#{cmd} "#{t.name}", <<~SQL\n}
         res.indent!
         yield res
         res.outdent!

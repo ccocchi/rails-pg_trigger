@@ -1,4 +1,5 @@
 require "rails/railtie"
+require_relative "../active_record/trigger_helpers"
 
 module PgTrigger
   class Railtie < Rails::Railtie
@@ -13,6 +14,12 @@ module PgTrigger
 
       ActiveSupport.on_load :active_record do
         self.include mod
+      end
+    end
+
+    initializer "pg_trigger.migration" do
+      ActiveSupport.on_load :active_record do
+        ::ActiveRecord::Migration.include(ActiveRecord::TriggerHelpers)
       end
     end
 
