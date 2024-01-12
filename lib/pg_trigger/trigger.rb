@@ -173,9 +173,7 @@ module PgTrigger
     end
 
     def normalize_string(str)
-      str = str.strip_heredoc
-      str.rstrip!
-      str.end_with?(";") ? str : "#{str};"
+      str.strip_heredoc.sub(/;?\s*\Z/, ";")
     end
 
     def adapter
