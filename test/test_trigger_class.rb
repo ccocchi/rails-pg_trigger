@@ -74,7 +74,7 @@ class TestTriggerClass < Minitest::Test
     trigger.named("first") { "UPDATE flurbos SET cnt = 100" }
     other = PgTrigger::Trigger.new.named("first") { "UPDATE flurbos SET cnt = 100" }
 
-    assert trigger.same_content_as?(other)
+    assert trigger.same?(other)
   end
 
   def test_same_content_with_multiline_strings
@@ -91,7 +91,17 @@ class TestTriggerClass < Minitest::Test
       SQL
     end
 
-    assert trigger.same_content_as?(other)
+    assert trigger.same?(other)
+  end
+
+  def test_same_with_where_condition
+    trigger.named("t").where("NEW.is_published") { "str" }
+    other = PgTrigger::Trigger.new.named("t") { "str" }
+
+    refute trigger.same?(other)
+
+    other.where("NEW.is_published")
+    assert trigger.same?(other)
   end
 
   def test_create_function_sql

@@ -108,8 +108,9 @@ module PgTrigger
     def where_clause = @where
 
     # Compare content without taking indentation into account
-    def same_content_as?(other)
-      content.gsub(/\s+/, " ") == other.content.gsub(/\s+/, " ")
+    def same?(other)
+      where_clause == other.where_clause &&
+        content.gsub(/\s+/, " ") == other.content.gsub(/\s+/, " ")
     end
 
     FN_CONTENT_REGEX = /BEGIN\s+(?<content>.+;)\n\s+RETURN NULL;/m
