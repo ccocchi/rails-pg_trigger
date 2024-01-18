@@ -15,7 +15,6 @@ class CreateTriggersOnComments < ActiveRecord::Migration[7.0]
       AFTER INSERT ON "comments"
       FOR EACH ROW
       EXECUTE FUNCTION comments_after_insert_tr();
-
     SQL
   end
 

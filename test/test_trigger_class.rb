@@ -146,7 +146,7 @@ class TestTriggerClass < Minitest::Test
 
   def test_create_trigger_sql
     trigger.on("comments").after(:insert, :update).named("foo_tr")
-    expected = <<~SQL
+    expected = <<~SQL.rstrip
       CREATE TRIGGER foo_tr
       AFTER INSERT OR UPDATE ON "comments"
       FOR EACH ROW
@@ -158,7 +158,7 @@ class TestTriggerClass < Minitest::Test
 
   def test_create_trigger_sql_with_condition
     trigger.on("comments").after(:insert).where("NEW.published").named("foo_published_tr")
-    expected = <<~SQL
+    expected = <<~SQL.rstrip
       CREATE TRIGGER foo_published_tr
       AFTER INSERT ON "comments"
       FOR EACH ROW

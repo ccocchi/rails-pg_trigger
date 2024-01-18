@@ -22,7 +22,6 @@ class DropTriggersOnComments < ActiveRecord::Migration[7.0]
       BEFORE UPDATE OF title ON "comments"
       FOR EACH ROW
       EXECUTE FUNCTION comments_before_update_tr();
-
     SQL
   end
 end

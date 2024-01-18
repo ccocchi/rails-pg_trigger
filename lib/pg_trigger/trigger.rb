@@ -148,7 +148,7 @@ module PgTrigger
       sql << "ON #{adapter.quote_table_name(@table)}\n"
       sql << "FOR EACH ROW\n"
       sql << "WHEN (#{@where})\n" unless @where.nil?
-      sql << "EXECUTE FUNCTION #{name}();\n"
+      sql << "EXECUTE FUNCTION #{name}();"
 
       sql
     end
