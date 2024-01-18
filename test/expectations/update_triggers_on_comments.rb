@@ -12,7 +12,7 @@ class UpdateTriggersOnComments < ActiveRecord::Migration[7.0]
       $$ LANGUAGE plpgsql;
 
       CREATE TRIGGER comments_before_update_tr
-      BEFORE UPDATE ON "comments"
+      BEFORE UPDATE OF title ON "comments"
       FOR EACH ROW
       EXECUTE FUNCTION comments_before_update_tr();
 
@@ -40,7 +40,7 @@ class UpdateTriggersOnComments < ActiveRecord::Migration[7.0]
       $$ LANGUAGE plpgsql;
 
       CREATE TRIGGER comments_before_update_tr
-      BEFORE UPDATE ON "comments"
+      BEFORE UPDATE OF title ON "comments"
       FOR EACH ROW
       EXECUTE FUNCTION comments_before_update_tr();
 

@@ -141,14 +141,16 @@ module PgTrigger
     end
 
     def create_trigger_sql
-      whr = @where.nil? ? "" : "\nWHEN (#@where)"
+      sql = "CREATE TRIGGER #{name}\n"
+      sql << @timing.to_s.upcase
+      sql << " #{events.map(&:upcase).join(" OR ")} "
+      sql << "OF #{columns.join(", ")} " if columns.any?
+      sql << "ON #{adapter.quote_table_name(@table)}\n"
+      sql << "FOR EACH ROW\n"
+      sql << "WHEN (#{@where})\n" unless @where.nil?
+      sql << "EXECUTE FUNCTION #{name}();\n"
 
-      <<~SQL
-        CREATE TRIGGER #{name}
-        #{@timing.upcase} #{events.map(&:upcase).join(" OR ")} ON #{adapter.quote_table_name(@table)}
-        FOR EACH ROW#{whr}
-        EXECUTE FUNCTION #{name}();
-      SQL
+      sql
     end
 
     def drop_function_sql
