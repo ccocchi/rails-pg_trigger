@@ -184,10 +184,18 @@ module PgTrigger
     end
 
     def inferred_name
-      [@table,
-      @timing,
-      @events.join("_or_"),
-      ].join("_").downcase.slice(0, 60) << "_tr"
+      base = [
+        @table,
+        @timing,
+        @events.join("_or_"),
+      ].join("_").downcase
+
+      if columns.any?
+        addendum = "_of_#{columns.join("_")}"
+        base << addendum if base.length + addendum.length <= 60
+      end
+
+      base.slice(0, 60) << "_tr"
     end
   end
 end

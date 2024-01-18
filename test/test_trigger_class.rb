@@ -61,6 +61,16 @@ class TestTriggerClass < Minitest::Test
     assert_equal "users_before_insert_or_update_tr", trigger.name
   end
 
+  def test_inferred_name_with_columns
+    trigger.on("users").before(:update).of("email")
+    assert_equal "users_before_update_of_email_tr", trigger.name
+  end
+
+  def test_inferred_name_with_too_long_columns
+    trigger.on("already_a_long_table_name").before(:update).of("a_column_that_will_be_too_long")
+    assert_equal "already_a_long_table_name_before_update_tr", trigger.name
+  end
+
   def test_chaining
     trigger.after(:update).of(:a, :b) { "SQL" }
 
