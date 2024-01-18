@@ -43,9 +43,9 @@ module PgTrigger
       def generate_output
         @output = ""
         header
-        up(:up)
+        add_direction(:up)
         @output << "\n"
-        up(:down)
+        add_direction(:down)
         footer
       end
 
@@ -58,33 +58,20 @@ module PgTrigger
         @output << "class #{migration_name} < ActiveRecord::Migration[#{ActiveRecord::Migration.current_version}]\n"
       end
 
-      def up(dir)
+      def add_direction(dir)
         res = IndentedString.new(size: 2, initial_indent: true)
         res << "def #{dir}\n"
         res.indent!
 
-        create = ->(t) do
-          add_command("create_trigger", t) do |s|
-            if t.create_function?
-              s += t.create_function_sql
-              s.newline
-            end
-            s += t.create_trigger_sql
-          end
-        end
+        blocks = []
 
-        drop = ->(t) do
-          add_command("drop_trigger", t) do |s|
-            s += t.drop_trigger_sql
-            s.newline
-            if t.create_function?
-              s += t.drop_function_sql
-            end
-          end
+        if dir == :up
+          blocks.concat @plan.removed_triggers.map { |t| drop_trigger_command(t) }
+          blocks.concat @plan.new_triggers.map { |t| create_trigger_command(t) }
+        else
+          blocks.concat @plan.new_triggers.map { |t| drop_trigger_command(t) }
+          blocks.concat @plan.removed_triggers.map { |t| create_trigger_command(t) }
         end
-
-        blocks = @plan.new_triggers.map { |t| (dir == :up ? create : drop).call(t) }
-        blocks.concat @plan.removed_triggers.map { |t| (dir == :up ? drop : create).call(t) }
 
         res += blocks.join("\n")
         res.outdent!
@@ -96,7 +83,27 @@ module PgTrigger
         @output << "end\n"
       end
 
-      def add_command(cmd, t)
+      def create_trigger_command(t)
+        make_command("create_trigger", t) do |s|
+          if t.create_function?
+            s += t.create_function_sql
+            s.newline
+          end
+          s += t.create_trigger_sql
+        end
+      end
+
+      def drop_trigger_command(t)
+        make_command("drop_trigger", t) do |s|
+          s += t.drop_trigger_sql
+          s.newline
+          if t.create_function?
+            s += t.drop_function_sql
+          end
+        end
+      end
+
+      def make_command(cmd, t)
         res = IndentedString.new(size: 0)
         res << %{#{cmd} "#{t.name}", <<~SQL\n}
         res.indent!

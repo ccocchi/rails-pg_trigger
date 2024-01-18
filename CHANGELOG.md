@@ -2,6 +2,7 @@
 
 - `where_clause` is now also used to compare triggers
 - Add trigger's columns in generated SQL and name
+- Correctly sequence creations and deletions in migration
 
 ## [0.1.1]
 
