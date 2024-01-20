@@ -110,7 +110,7 @@ class TestTriggerClass < Minitest::Test
 
     refute trigger.same?(other)
 
-    other.where("NEW.is_published")
+    other.where("new.is_published")
     assert trigger.same?(other)
   end
 

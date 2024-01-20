@@ -109,7 +109,7 @@ module PgTrigger
 
     # Compare content without taking indentation into account
     def same?(other)
-      where_clause == other.where_clause &&
+      where_clause&.downcase == other&.where_clause&.downcase &&
         content.gsub(/\s+/, " ") == other.content.gsub(/\s+/, " ")
     end
 
