@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.1.2]
 
 - `where_clause` is now also used to compare triggers
 - Add trigger's columns in generated SQL and name
