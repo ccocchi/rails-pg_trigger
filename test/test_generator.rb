@@ -49,11 +49,14 @@ class TestGenerator < Minitest::Test
 
   def test_generate_multiple_triggers
     plan = PgTrigger::Plan.new
+    old = PgTrigger::Trigger.new.on("comments").before(:update).of(:title) do
+      "UPDATE posts SET comments_count = comments_count + 100 WHERE id = NEW.post_id"
+    end
     trigger = PgTrigger::Trigger.new.on("comments").before(:update).of(:title) do
       "UPDATE posts SET comments_count = comments_count + 1 WHERE id = NEW.post_id"
     end
 
-    plan.update_trigger(trigger)
+    plan.update_trigger(old, trigger)
     migration = PgTrigger::Generator::Migration.new(plan)
     output = migration.generate_output
 

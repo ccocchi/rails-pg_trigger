@@ -20,7 +20,7 @@ module PgTrigger
         @expected.each do |t|
           e = @existing.find { |_t| _t.name == t.name }
           if e
-            plan.update_trigger(t) unless t.same?(e)
+            plan.update_trigger(e, t) unless t.same?(e)
           else
             plan.add_trigger(t)
           end
@@ -81,12 +81,12 @@ module PgTrigger
       @actions[:to_remove] << t
     end
 
-    def update_trigger(t)
+    def update_trigger(old_t, new_t)
       set_type :update
-      set_table t.table
+      set_table new_t.table
 
-      @actions[:to_remove] << t
-      @actions[:to_add] << t
+      @actions[:to_remove] << old_t
+      @actions[:to_add] << new_t
     end
 
     private

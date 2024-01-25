@@ -38,7 +38,7 @@ class TestPlanBuilder < Minitest::Test
 
     refute_empty plan
     assert_equal [trigger], plan.new_triggers
-    assert_equal [trigger], plan.removed_triggers
+    assert_equal [old], plan.removed_triggers
   end
 
   def trigger

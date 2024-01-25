@@ -1,4 +1,8 @@
-## [0.1.2]
+## [Unreleased]
+
+- Correclty rollback updated triggers
+
+## [0.1.2] -  2024-01-22
 
 - `where_clause` is now also used to compare triggers
 - Add trigger's columns in generated SQL and name

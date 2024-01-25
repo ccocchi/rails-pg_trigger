@@ -33,7 +33,7 @@ class UpdateTriggersOnComments < ActiveRecord::Migration[7.0]
       CREATE OR REPLACE FUNCTION comments_before_update_of_title_tr() RETURNS TRIGGER
       AS $$
         BEGIN
-          UPDATE posts SET comments_count = comments_count + 1 WHERE id = NEW.post_id;
+          UPDATE posts SET comments_count = comments_count + 100 WHERE id = NEW.post_id;
           RETURN NULL;
         END
       $$ LANGUAGE plpgsql;

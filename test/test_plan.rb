@@ -71,7 +71,7 @@ class TestPlan < Minitest::Test
   end
 
   def test_updating_trigger
-    plan.update_trigger(trigger)
+    plan.update_trigger(trigger, trigger)
 
     assert_equal :update, plan.type
     assert_equal "users", plan.table
@@ -90,7 +90,7 @@ class TestPlan < Minitest::Test
   end
 
   def test_name_on_trigger_update
-    plan.update_trigger(trigger)
+    plan.update_trigger(trigger, trigger)
     assert_equal "update_triggers_on_users", plan.name
   end
 
