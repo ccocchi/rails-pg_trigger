@@ -1,8 +1,11 @@
 ## [Unreleased]
 
-- Correclty rollback updated triggers
+## [0.1.3] - 2024-02-11
 
-## [0.1.2] -  2024-01-22
+- Correclty rollback updated triggers
+- Fix noop in non dev/test environments
+
+## [0.1.2] - 2024-01-22
 
 - `where_clause` is now also used to compare triggers
 - Add trigger's columns in generated SQL and name
