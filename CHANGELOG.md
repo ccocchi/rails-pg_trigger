@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- Implement `nowrap`
+
 ## [0.1.3] - 2024-02-11
 
 - Correclty rollback updated triggers

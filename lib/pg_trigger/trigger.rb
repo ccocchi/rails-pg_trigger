@@ -51,7 +51,10 @@ module PgTrigger
           trigger.where(where)
         end
 
-        trigger.nowrap if match[:fn] != match[:name]
+        if match[:fn] != match[:name]
+          trigger.nowrap { "#{match[:fn]}()" }
+        end
+
         trigger
       end
     end
@@ -141,6 +144,12 @@ module PgTrigger
     end
 
     def create_trigger_sql
+      action = if create_function?
+        "#{name}();"
+      else
+        @content
+      end
+
       sql = "CREATE TRIGGER #{name}\n"
       sql << @timing.to_s.upcase
       sql << " #{events.map(&:upcase).join(" OR ")} "
@@ -148,7 +157,7 @@ module PgTrigger
       sql << "ON #{adapter.quote_table_name(@table)}\n"
       sql << "FOR EACH ROW\n"
       sql << "WHEN (#{@where})\n" unless @where.nil?
-      sql << "EXECUTE FUNCTION #{name}();"
+      sql << "EXECUTE FUNCTION #{action}"
 
       sql
     end

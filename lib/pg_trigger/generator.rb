@@ -96,8 +96,8 @@ module PgTrigger
       def drop_trigger_command(t)
         make_command("drop_trigger", t) do |s|
           s += t.drop_trigger_sql
-          s.newline
           if t.create_function?
+            s.newline
             s += t.drop_function_sql
           end
         end

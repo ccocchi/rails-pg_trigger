@@ -46,6 +46,13 @@ class TestTriggerClass < Minitest::Test
     assert_equal "users_after_insert_tr", trigger.name
   end
 
+  def test_nowrap
+    trigger.nowrap { "foobar();" }
+
+    refute trigger.create_function?
+    assert_equal "foobar();", trigger.content
+  end
+
   def test_content_with_trailing_spaces
     trigger.named("ok_tr") { "SELECT 1;\n" }
     assert_equal "SELECT 1;", trigger.content
@@ -114,6 +121,13 @@ class TestTriggerClass < Minitest::Test
     assert trigger.same?(other)
   end
 
+  def test_same_with_nowrap
+    trigger.named("foo").nowrap { "bar()" }
+    other = PgTrigger::Trigger.new.named("foo") { "bar()" }
+
+    assert trigger.same?(other)
+  end
+
   def test_create_function_sql
     content = "UPDATE posts SET comments_count = comments_count + 1"
     trigger.on("comments").after(:insert).named("foo_tr") { content }
@@ -179,6 +193,18 @@ class TestTriggerClass < Minitest::Test
     assert_equal expected, trigger.create_trigger_sql
   end
 
+  def test_create_trigger_sql_nowrap
+    trigger.on("comments").after(:delete).named("foo_nowrap_tr").nowrap { "custom_fn()" }
+    expected = <<~SQL.rstrip
+      CREATE TRIGGER foo_nowrap_tr
+      AFTER DELETE ON "comments"
+      FOR EACH ROW
+      EXECUTE FUNCTION custom_fn();
+    SQL
+
+    assert_equal expected, trigger.create_trigger_sql
+  end
+
   def test_from_definition_from_simple_trigger
     defn = <<~SQL
       CREATE TRIGGER comments_after_update_tr AFTER UPDATE OF content, title ON public.comments FOR EACH ROW EXECUTE FUNCTION comments_after_update_tr();
@@ -205,6 +231,22 @@ class TestTriggerClass < Minitest::Test
     assert_equal [:insert, :update], tr.events
     assert_equal "comments", tr.table
     assert_equal "NEW.is_published", tr.where_clause
+    refute tr.nowrap?
+  end
+
+  def test_from_definition_with_nowrap
+    defn = <<~SQL
+      CREATE TRIGGER comments_after_insert_tr BEFORE INSERT ON public.comments FOR EACH ROW EXECUTE FUNCTION foobar();
+    SQL
+
+    tr = PgTrigger::Trigger.from_definition(defn)
+
+    assert_equal "comments_after_insert_tr", tr.name
+    assert_equal :before, tr.timing
+    assert_equal [:insert], tr.events
+    assert_equal "comments", tr.table
+    assert_equal true, tr.nowrap?
+    assert_equal "foobar();", tr.content
   end
 
   def test_invalid_definition
