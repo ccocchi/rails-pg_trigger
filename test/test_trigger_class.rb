@@ -36,6 +36,17 @@ class TestTriggerClass < Minitest::Test
     assert_equal [:insert, :delete], trigger.events
   end
 
+  def test_where
+    trigger.where("column IS NULL")
+    assert_equal "column IS NULL", trigger.where_clause
+  end
+
+  def test_where_raises_when_called_with_ambiguous_condition
+    assert_raises PgTrigger::AmbiguousConditionError do
+      trigger.where("NOT boolean_column")
+    end
+  end
+
   def test_of
     trigger.of(:id, :created_at)
     assert_equal [:id, :created_at], trigger.columns
@@ -247,6 +258,17 @@ class TestTriggerClass < Minitest::Test
     assert_equal "comments", tr.table
     assert_equal true, tr.nowrap?
     assert_equal "foobar();", tr.content
+  end
+
+  def test_from_definition_with_many_parenthesis_condidition
+    defn = <<~SQL
+      CREATE TRIGGER comments_after_insert_tr BEFORE INSERT OR UPDATE ON public.comments FOR EACH ROW WHEN ((NOT NEW.is_published)) EXECUTE FUNCTION comments_after_insert_tr();
+    SQL
+
+    tr = PgTrigger::Trigger.from_definition(defn)
+
+    assert_equal "comments_after_insert_tr", tr.name
+    assert_equal "(NOT NEW.is_published)", tr.where_clause
   end
 
   def test_invalid_definition

@@ -26,7 +26,7 @@ module PgTrigger
         "(?<timing>AFTER|BEFORE)",
         "(?<events>(?:INSERT|UPDATE|DELETE)(?: OR (?:INSERT|UPDATE|DELETE))?)",
         "(?:OF(?<columns>(?:\\s[a-z0-9_]+,?)+)\\s)?ON (?:[\\w\"]+\\.)?(?<table>\\w+)",
-        "FOR EACH ROW(?: WHEN \\((?<where>[^\\)]+)\\))?",
+        "FOR EACH ROW(?: WHEN \\((?<where>\\(?[^\\)]+\\)?)\\))?",
         "EXECUTE FUNCTION (?:\\w+\\.)?(?<fn>\\w+)",
       ].join("\\s")
       .yield_self { |str| Regexp.new(str) }
@@ -91,6 +91,9 @@ module PgTrigger
     end
 
     def where(condition)
+      if condition.start_with?("NOT", "not")
+        raise AmbiguousConditionError, "when condition starting with a NOT should be enclosed in parenthesis"
+      end
       @where = condition
     end
 
@@ -126,6 +129,10 @@ module PgTrigger
 
     def create_function?
       !@options[:nowrap]
+    end
+
+    def nowrap?
+      @options[:nowrap]
     end
 
     def create_function_sql

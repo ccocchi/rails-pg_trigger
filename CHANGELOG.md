@@ -1,6 +1,8 @@
 ## [Unreleased]
 
 - Implement `nowrap`
+- Allow parenthesis-wrapped condition
+- Force negative condition to be parenthesis-wrapped
 
 ## [0.1.3] - 2024-02-11
 
